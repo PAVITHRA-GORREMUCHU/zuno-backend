@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: zuno-backend
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/zuno}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+server:
+  port: ${PORT:8080}
+
+# Custom app config
+zuno:
+  jwt:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production}
+    expiration-days: 30
+  otp:
+    provider: msg91
+    api-key: ${MSG91_API_KEY:}
+    template-id: ${MSG91_TEMPLATE_ID:}
