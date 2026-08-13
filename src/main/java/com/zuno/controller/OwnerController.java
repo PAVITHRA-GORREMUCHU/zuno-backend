@@ -1,15 +1,18 @@
 package com.zuno.controller;
 
-import com.zuno.dto.ApiResponse;
-import com.zuno.dto.CreateListingRequest;
-import com.zuno.dto.ListingResponse;
+import com.zuno.dto.*;
 import com.zuno.model.Listing;
+import com.zuno.model.Room;
 import com.zuno.service.ListingService;
+import com.zuno.service.RoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/owner")
@@ -17,12 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class OwnerController {
 
     private final ListingService listingService;
+    private final RoomService roomService;
 
     /**
      * T-08: Create a new PG listing
      * POST /api/owner/listings
-     *
-     * Note: No auth yet (Sprint 4). Uses header X-Owner-Phone as temporary owner identity.
      */
     @PostMapping("/listings")
     public ResponseEntity<ApiResponse<ListingResponse>> createListing(
@@ -34,5 +36,34 @@ public class OwnerController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response, "Listing created successfully"));
+    }
+
+    /**
+     * T-15: Add a room to a listing
+     * POST /api/owner/listings/{listingId}/rooms
+     */
+    @PostMapping("/listings/{listingId}/rooms")
+    public ResponseEntity<ApiResponse<RoomResponse>> addRoom(
+            @PathVariable UUID listingId,
+            @Valid @RequestBody CreateRoomRequest request) {
+
+        Room room = roomService.addRoom(listingId, request);
+        RoomResponse response = RoomResponse.from(room);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response, "Room added successfully"));
+    }
+
+    /**
+     * Get all rooms for a listing
+     * GET /api/owner/listings/{listingId}/rooms
+     */
+    @GetMapping("/listings/{listingId}/rooms")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getRooms(@PathVariable UUID listingId) {
+        List<RoomResponse> rooms = roomService.getRoomsByListing(listingId).stream()
+                .map(RoomResponse::from)
+                .toList();
+
+        return ResponseEntity.ok(ApiResponse.success(rooms));
     }
 }
