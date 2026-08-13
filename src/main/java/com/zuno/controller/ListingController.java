@@ -1,10 +1,9 @@
 package com.zuno.controller;
 
-import com.zuno.dto.ApiResponse;
-import com.zuno.dto.ListingResponse;
-import com.zuno.dto.PaginationInfo;
+import com.zuno.dto.*;
 import com.zuno.model.Listing;
 import com.zuno.service.ListingService;
+import com.zuno.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,12 +22,11 @@ import java.util.UUID;
 public class ListingController {
 
     private final ListingService listingService;
+    private final RoomService roomService;
 
     /**
      * T-09: Get all active listings with pagination
      * T-11: Filter by area, budget, gender (all optional)
-     *
-     * GET /api/listings?page=0&size=10&area=TNGOS&budget_max=10000&gender=MALE
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<ListingResponse>>> getListings(
@@ -40,17 +38,14 @@ public class ListingController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // Parse gender if provided
         Listing.GenderPreference genderPref = null;
         if (gender != null && !gender.isBlank()) {
             try {
                 genderPref = Listing.GenderPreference.valueOf(gender.toUpperCase());
             } catch (IllegalArgumentException ignored) {
-                // Invalid gender value — ignore filter
             }
         }
 
-        // If any filter is provided, use search; otherwise get all
         Page<Listing> listings;
         if (area != null || budgetMax != null || genderPref != null) {
             listings = listingService.searchListings(area, budgetMax, genderPref, pageable);
@@ -73,7 +68,6 @@ public class ListingController {
 
     /**
      * T-10: Get single listing by ID
-     * GET /api/listings/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ListingResponse>> getListingById(@PathVariable UUID id) {
@@ -83,8 +77,19 @@ public class ListingController {
     }
 
     /**
+     * T-17: Get rooms for a listing (used by detail page for vacancy display)
+     * GET /api/listings/{id}/rooms
+     */
+    @GetMapping("/{id}/rooms")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getListingRooms(@PathVariable UUID id) {
+        List<RoomResponse> rooms = roomService.getRoomsByListing(id).stream()
+                .map(RoomResponse::from)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success(rooms));
+    }
+
+    /**
      * Stats endpoint for homepage
-     * GET /api/listings/stats
      */
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<Map<String, Long>>> getStats() {
